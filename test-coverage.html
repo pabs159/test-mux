@@ -1,0 +1,2146 @@
+
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>mux: Go Coverage Report</title>
+		<style>
+			body {
+				background: black;
+				color: rgb(80, 80, 80);
+			}
+			body, pre, #legend span {
+				font-family: Menlo, monospace;
+				font-weight: bold;
+			}
+			#topbar {
+				background: black;
+				position: fixed;
+				top: 0; left: 0; right: 0;
+				height: 42px;
+				border-bottom: 1px solid rgb(80, 80, 80);
+			}
+			#content {
+				margin-top: 50px;
+			}
+			#nav, #legend {
+				float: left;
+				margin-left: 10px;
+			}
+			#legend {
+				margin-top: 12px;
+			}
+			#nav {
+				margin-top: 10px;
+			}
+			#legend span {
+				margin: 0 5px;
+			}
+			.cov0 { color: rgb(192, 0, 0) }
+.cov1 { color: rgb(128, 128, 128) }
+.cov2 { color: rgb(116, 140, 131) }
+.cov3 { color: rgb(104, 152, 134) }
+.cov4 { color: rgb(92, 164, 137) }
+.cov5 { color: rgb(80, 176, 140) }
+.cov6 { color: rgb(68, 188, 143) }
+.cov7 { color: rgb(56, 200, 146) }
+.cov8 { color: rgb(44, 212, 149) }
+.cov9 { color: rgb(32, 224, 152) }
+.cov10 { color: rgb(20, 236, 155) }
+
+		</style>
+	</head>
+	<body>
+		<div id="topbar">
+			<div id="nav">
+				<select id="files">
+				
+				<option value="file0">github.com/gorilla/mux/middleware.go (100.0%)</option>
+				
+				<option value="file1">github.com/gorilla/mux/mux.go (93.2%)</option>
+				
+				<option value="file2">github.com/gorilla/mux/regexp.go (93.3%)</option>
+				
+				<option value="file3">github.com/gorilla/mux/route.go (85.8%)</option>
+				
+				<option value="file4">github.com/gorilla/mux/test_helpers.go (100.0%)</option>
+				
+				</select>
+			</div>
+			<div id="legend">
+				<span>not tracked</span>
+			
+				<span class="cov0">not covered</span>
+				<span class="cov8">covered</span>
+			
+			</div>
+		</div>
+		<div id="content">
+		
+		<pre class="file" id="file0" style="display: none">package mux
+
+import (
+        "net/http"
+        "strings"
+)
+
+// MiddlewareFunc is a function which receives an http.Handler and returns another http.Handler.
+// Typically, the returned handler is a closure which does something with the http.ResponseWriter and http.Request passed
+// to it, and then calls the handler passed as parameter to the MiddlewareFunc.
+type MiddlewareFunc func(http.Handler) http.Handler
+
+// middleware interface is anything which implements a MiddlewareFunc named Middleware.
+type middleware interface {
+        Middleware(handler http.Handler) http.Handler
+}
+
+// Middleware allows MiddlewareFunc to implement the middleware interface.
+func (mw MiddlewareFunc) Middleware(handler http.Handler) http.Handler <span class="cov8" title="1">{
+        return mw(handler)
+}</span>
+
+// Use appends a MiddlewareFunc to the chain. Middleware can be used to intercept or otherwise modify requests and/or responses, and are executed in the order that they are applied to the Router.
+func (r *Router) Use(mwf ...MiddlewareFunc) <span class="cov8" title="1">{
+        for _, fn := range mwf </span><span class="cov8" title="1">{
+                r.middlewares = append(r.middlewares, fn)
+        }</span>
+}
+
+// useInterface appends a middleware to the chain. Middleware can be used to intercept or otherwise modify requests and/or responses, and are executed in the order that they are applied to the Router.
+func (r *Router) useInterface(mw middleware) <span class="cov8" title="1">{
+        r.middlewares = append(r.middlewares, mw)
+}</span>
+
+// RouteMiddleware -------------------------------------------------------------
+
+// Use appends a MiddlewareFunc to the chain. Middleware can be used to intercept or otherwise modify requests and/or responses, and are executed in the order that they are applied to the Route. Route middleware are executed after the Router middleware but before the Route handler.
+func (r *Route) Use(mwf ...MiddlewareFunc) *Route <span class="cov8" title="1">{
+        for _, fn := range mwf </span><span class="cov8" title="1">{
+                r.middlewares = append(r.middlewares, fn)
+        }</span>
+
+        <span class="cov8" title="1">return r</span>
+}
+
+// useInterface appends a MiddlewareFunc to the chain. Middleware can be used to intercept or otherwise modify requests and/or responses, and are executed in the order that they are applied to the Route. Route middleware are executed after the Router middleware but before the Route handler.
+func (r *Route) useInterface(mw middleware) <span class="cov8" title="1">{
+        r.middlewares = append(r.middlewares, mw)
+}</span>
+
+// CORSMethodMiddleware automatically sets the Access-Control-Allow-Methods response header
+// on requests for routes that have an OPTIONS method matcher to all the method matchers on
+// the route. Routes that do not explicitly handle OPTIONS requests will not be processed
+// by the middleware. See examples for usage.
+func CORSMethodMiddleware(r *Router) MiddlewareFunc <span class="cov8" title="1">{
+        return func(next http.Handler) http.Handler </span><span class="cov8" title="1">{
+                return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) </span><span class="cov8" title="1">{
+                        allMethods, err := getAllMethodsForRoute(r, req)
+                        if err == nil </span><span class="cov8" title="1">{
+                                for _, v := range allMethods </span><span class="cov8" title="1">{
+                                        if v == http.MethodOptions </span><span class="cov8" title="1">{
+                                                w.Header().Set("Access-Control-Allow-Methods", strings.Join(allMethods, ","))
+                                        }</span>
+                                }
+                        }
+
+                        <span class="cov8" title="1">next.ServeHTTP(w, req)</span>
+                })
+        }
+}
+
+// getAllMethodsForRoute returns all the methods from method matchers matching a given
+// request.
+func getAllMethodsForRoute(r *Router, req *http.Request) ([]string, error) <span class="cov8" title="1">{
+        var allMethods []string
+
+        for _, route := range r.routes </span><span class="cov8" title="1">{
+                var match RouteMatch
+                if route.Match(req, &amp;match) || match.MatchErr == ErrMethodMismatch </span><span class="cov8" title="1">{
+                        methods, err := route.GetMethods()
+                        if err != nil </span><span class="cov8" title="1">{
+                                return nil, err
+                        }</span>
+
+                        <span class="cov8" title="1">allMethods = append(allMethods, methods...)</span>
+                }
+        }
+
+        <span class="cov8" title="1">return allMethods, nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file1" style="display: none">// Copyright 2012 The Gorilla Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+package mux
+
+import (
+        "context"
+        "errors"
+        "fmt"
+        "net/http"
+        "net/url"
+        "path"
+        "regexp"
+)
+
+var (
+        // ErrMethodMismatch is returned when the method in the request does not match
+        // the method defined against the route.
+        ErrMethodMismatch = errors.New("method is not allowed")
+        // ErrNotFound is returned when no route match is found.
+        ErrNotFound = errors.New("no matching route was found")
+        // RegexpCompileFunc aliases regexp.Compile and enables overriding it.
+        // Do not run this function from `init()` in importable packages.
+        // Changing this value is not safe for concurrent use.
+        RegexpCompileFunc = regexp.Compile
+        // ErrMetadataKeyNotFound is returned when the specified metadata key is not present in the map
+        ErrMetadataKeyNotFound = errors.New("key not found in metadata")
+)
+
+// NewRouter returns a new router instance.
+func NewRouter() *Router <span class="cov8" title="1">{
+        return &amp;Router{namedRoutes: make(map[string]*Route)}
+}</span>
+
+// Router registers routes to be matched and dispatches a handler.
+//
+// It implements the http.Handler interface, so it can be registered to serve
+// requests:
+//
+//        var router = mux.NewRouter()
+//
+//        func main() {
+//            http.Handle("/", router)
+//        }
+//
+// Or, for Google App Engine, register it in a init() function:
+//
+//        func init() {
+//            http.Handle("/", router)
+//        }
+//
+// This will send all incoming requests to the router.
+type Router struct {
+        // Configurable Handler to be used when no route matches.
+        // This can be used to render your own 404 Not Found errors.
+        NotFoundHandler http.Handler
+
+        // Configurable Handler to be used when the request method does not match the route.
+        // This can be used to render your own 405 Method Not Allowed errors.
+        MethodNotAllowedHandler http.Handler
+
+        // Routes to be matched, in order.
+        routes []*Route
+
+        // Routes by name for URL building.
+        namedRoutes map[string]*Route
+
+        // If true, do not clear the request context after handling the request.
+        //
+        // Deprecated: No effect, since the context is stored on the request itself.
+        KeepContext bool
+
+        // Slice of middlewares to be called after a match is found
+        middlewares []middleware
+
+        // configuration shared with `Route`
+        routeConf
+}
+
+// common route configuration shared between `Router` and `Route`
+type routeConf struct {
+        // If true, "/path/foo%2Fbar/to" will match the path "/path/{var}/to"
+        useEncodedPath bool
+
+        // If true, when the path pattern is "/path/", accessing "/path" will
+        // redirect to the former and vice versa.
+        strictSlash bool
+
+        // If true, when the path pattern is "/path//to", accessing "/path//to"
+        // will not redirect
+        skipClean bool
+
+        // If true, the http.Request context will not contain the Route.
+        omitRouteFromContext bool
+
+        // if true, the the http.Request context will not contain the router
+        omitRouterFromContext bool
+
+        // Manager for the variables from host and path.
+        regexp routeRegexpGroup
+
+        // List of matchers.
+        matchers []matcher
+
+        // The scheme used when building URLs.
+        buildScheme string
+
+        buildVarsFunc BuildVarsFunc
+}
+
+// returns an effective deep copy of `routeConf`
+func copyRouteConf(r routeConf) routeConf <span class="cov8" title="1">{
+        c := r
+
+        if r.regexp.path != nil </span><span class="cov8" title="1">{
+                c.regexp.path = copyRouteRegexp(r.regexp.path)
+        }</span>
+
+        <span class="cov8" title="1">if r.regexp.host != nil </span><span class="cov8" title="1">{
+                c.regexp.host = copyRouteRegexp(r.regexp.host)
+        }</span>
+
+        <span class="cov8" title="1">c.regexp.queries = make([]*routeRegexp, 0, len(r.regexp.queries))
+        for _, q := range r.regexp.queries </span><span class="cov8" title="1">{
+                c.regexp.queries = append(c.regexp.queries, copyRouteRegexp(q))
+        }</span>
+
+        <span class="cov8" title="1">c.matchers = make([]matcher, len(r.matchers))
+        copy(c.matchers, r.matchers)
+
+        return c</span>
+}
+
+func copyRouteRegexp(r *routeRegexp) *routeRegexp <span class="cov8" title="1">{
+        c := *r
+        return &amp;c
+}</span>
+
+// Match attempts to match the given request against the router's registered routes.
+//
+// If the request matches a route of this router or one of its subrouters the Route,
+// Handler, and Vars fields of the the match argument are filled and this function
+// returns true.
+//
+// If the request does not match any of this router's or its subrouters' routes
+// then this function returns false. If available, a reason for the match failure
+// will be filled in the match argument's MatchErr field. If the match failure type
+// (eg: not found) has a registered handler, the handler is assigned to the Handler
+// field of the match argument.
+func (r *Router) Match(req *http.Request, match *RouteMatch) bool <span class="cov8" title="1">{
+        for _, route := range r.routes </span><span class="cov8" title="1">{
+                if route.Match(req, match) </span><span class="cov8" title="1">{
+                        // Build middleware chain if no error was found
+                        if match.MatchErr == nil </span><span class="cov8" title="1">{
+                                for i := len(r.middlewares) - 1; i &gt;= 0; i-- </span><span class="cov8" title="1">{
+                                        match.Handler = r.middlewares[i].Middleware(match.Handler)
+                                }</span>
+                        }
+                        <span class="cov8" title="1">return true</span>
+                }
+        }
+
+        <span class="cov8" title="1">if match.MatchErr == ErrMethodMismatch </span><span class="cov8" title="1">{
+                if r.MethodNotAllowedHandler != nil </span><span class="cov8" title="1">{
+                        match.Handler = r.MethodNotAllowedHandler
+                        return true
+                }</span>
+
+                <span class="cov8" title="1">return false</span>
+        }
+
+        // Closest match for a router (includes sub-routers)
+        <span class="cov8" title="1">if r.NotFoundHandler != nil </span><span class="cov8" title="1">{
+                match.Handler = r.NotFoundHandler
+                match.MatchErr = ErrNotFound
+                return true
+        }</span>
+
+        <span class="cov8" title="1">match.MatchErr = ErrNotFound
+        return false</span>
+}
+
+// ServeHTTP dispatches the handler registered in the matched route.
+//
+// When there is a match, the route variables can be retrieved calling
+// mux.Vars(request).
+func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) <span class="cov8" title="1">{
+        if !r.skipClean </span><span class="cov8" title="1">{
+                path := req.URL.Path
+                if r.useEncodedPath </span><span class="cov0" title="0">{
+                        path = req.URL.EscapedPath()
+                }</span>
+                // Clean path to canonical form and redirect.
+                <span class="cov8" title="1">if p := cleanPath(path); p != path </span><span class="cov8" title="1">{
+                        w.Header().Set("Location", replaceURLPath(req.URL, p))
+                        w.WriteHeader(http.StatusMovedPermanently)
+                        return
+                }</span>
+        }
+        <span class="cov8" title="1">var match RouteMatch
+        var handler http.Handler
+        if r.Match(req, &amp;match) </span><span class="cov8" title="1">{
+                handler = match.Handler
+                if handler != nil </span><span class="cov8" title="1">{
+                        // Populate context for custom handlers
+                        if r.omitRouteFromContext </span><span class="cov8" title="1">{
+                                // Only populate the match vars (if any) into the context.
+                                req = requestWithVars(req, match.Vars)
+                        }</span> else<span class="cov8" title="1"> {
+                                req = requestWithRouteAndVars(req, match.Route, match.Vars)
+                        }</span>
+
+                        <span class="cov8" title="1">if !r.omitRouterFromContext </span><span class="cov8" title="1">{
+                                req = requestWithRouter(req, r)
+                        }</span>
+                }
+        }
+
+        <span class="cov8" title="1">if handler == nil &amp;&amp; match.MatchErr == ErrMethodMismatch </span><span class="cov8" title="1">{
+                handler = methodNotAllowedHandler()
+        }</span>
+
+        <span class="cov8" title="1">if handler == nil </span><span class="cov8" title="1">{
+                handler = http.NotFoundHandler()
+        }</span>
+
+        <span class="cov8" title="1">handler.ServeHTTP(w, req)</span>
+}
+
+// Get returns a route registered with the given name.
+func (r *Router) Get(name string) *Route <span class="cov8" title="1">{
+        return r.namedRoutes[name]
+}</span>
+
+// GetRoute returns a route registered with the given name. This method
+// was renamed to Get() and remains here for backwards compatibility.
+func (r *Router) GetRoute(name string) *Route <span class="cov0" title="0">{
+        return r.namedRoutes[name]
+}</span>
+
+// StrictSlash defines the trailing slash behavior for new routes. The initial
+// value is false.
+//
+// When true, if the route path is "/path/", accessing "/path" will perform a redirect
+// to the former and vice versa. In other words, your application will always
+// see the path as specified in the route.
+//
+// When false, if the route path is "/path", accessing "/path/" will not match
+// this route and vice versa.
+//
+// The redirect is a HTTP 301 (Moved Permanently). Note that when this is set for
+// routes with a non-idempotent method (e.g. POST, PUT), the subsequent redirected
+// request will be made as a GET by most clients. Use middleware or client settings
+// to modify this behaviour as needed.
+//
+// Special case: when a route sets a path prefix using the PathPrefix() method,
+// strict slash is ignored for that route because the redirect behavior can't
+// be determined from a prefix alone. However, any subrouters created from that
+// route inherit the original StrictSlash setting.
+func (r *Router) StrictSlash(value bool) *Router <span class="cov8" title="1">{
+        r.strictSlash = value
+        return r
+}</span>
+
+// SkipClean defines the path cleaning behaviour for new routes. The initial
+// value is false. Users should be careful about which routes are not cleaned
+//
+// When true, if the route path is "/path//to", it will remain with the double
+// slash. This is helpful if you have a route like: /fetch/http://xkcd.com/534/
+//
+// When false, the path will be cleaned, so /fetch/http://xkcd.com/534/ will
+// become /fetch/http/xkcd.com/534
+func (r *Router) SkipClean(value bool) *Router <span class="cov8" title="1">{
+        r.skipClean = value
+        return r
+}</span>
+
+// OmitRouteFromContext defines the behavior of omitting the Route from the
+//
+//        http.Request context.
+//
+// CurrentRoute will yield nil with this option.
+func (r *Router) OmitRouteFromContext(value bool) *Router <span class="cov8" title="1">{
+        r.omitRouteFromContext = value
+        return r
+}</span>
+
+// OmitRouterFromContext defines the behavior of omitting the Router from the
+// http.Request context.
+//
+// RouterFromRequest will yield nil with this option.
+func (r *Router) OmitRouterFromContext(value bool) *Router <span class="cov8" title="1">{
+        r.omitRouterFromContext = value
+        return r
+}</span>
+
+// UseEncodedPath tells the router to match the encoded original path
+// to the routes.
+// For eg. "/path/foo%2Fbar/to" will match the path "/path/{var}/to".
+//
+// If not called, the router will match the unencoded path to the routes.
+// For eg. "/path/foo%2Fbar/to" will match the path "/path/foo/bar/to"
+func (r *Router) UseEncodedPath() *Router <span class="cov8" title="1">{
+        r.useEncodedPath = true
+        return r
+}</span>
+
+// ----------------------------------------------------------------------------
+// Route factories
+// ----------------------------------------------------------------------------
+
+// NewRoute registers an empty route.
+func (r *Router) NewRoute() *Route <span class="cov8" title="1">{
+        // initialize a route with a copy of the parent router's configuration
+        route := &amp;Route{routeConf: copyRouteConf(r.routeConf), namedRoutes: r.namedRoutes}
+        r.routes = append(r.routes, route)
+        return route
+}</span>
+
+// Name registers a new route with a name.
+// See Route.Name().
+func (r *Router) Name(name string) *Route <span class="cov8" title="1">{
+        return r.NewRoute().Name(name)
+}</span>
+
+// Handle registers a new route with a matcher for the URL path.
+// See Route.Path() and Route.Handler().
+func (r *Router) Handle(path string, handler http.Handler) *Route <span class="cov8" title="1">{
+        return r.NewRoute().Path(path).Handler(handler)
+}</span>
+
+// HandleFunc registers a new route with a matcher for the URL path.
+// See Route.Path() and Route.HandlerFunc().
+func (r *Router) HandleFunc(path string, f func(http.ResponseWriter,
+        *http.Request)) *Route <span class="cov8" title="1">{
+        return r.NewRoute().Path(path).HandlerFunc(f)
+}</span>
+
+// Headers registers a new route with a matcher for request header values.
+// See Route.Headers().
+func (r *Router) Headers(pairs ...string) *Route <span class="cov8" title="1">{
+        return r.NewRoute().Headers(pairs...)
+}</span>
+
+// Host registers a new route with a matcher for the URL host.
+// See Route.Host().
+func (r *Router) Host(tpl string) *Route <span class="cov8" title="1">{
+        return r.NewRoute().Host(tpl)
+}</span>
+
+// MatcherFunc registers a new route with a custom matcher function.
+// See Route.MatcherFunc().
+func (r *Router) MatcherFunc(f MatcherFunc) *Route <span class="cov0" title="0">{
+        return r.NewRoute().MatcherFunc(f)
+}</span>
+
+// Methods registers a new route with a matcher for HTTP methods.
+// See Route.Methods().
+func (r *Router) Methods(methods ...string) *Route <span class="cov8" title="1">{
+        return r.NewRoute().Methods(methods...)
+}</span>
+
+// Path registers a new route with a matcher for the URL path.
+// See Route.Path().
+func (r *Router) Path(tpl string) *Route <span class="cov8" title="1">{
+        return r.NewRoute().Path(tpl)
+}</span>
+
+// PathPrefix registers a new route with a matcher for the URL path prefix.
+// See Route.PathPrefix().
+func (r *Router) PathPrefix(tpl string) *Route <span class="cov8" title="1">{
+        return r.NewRoute().PathPrefix(tpl)
+}</span>
+
+// Queries registers a new route with a matcher for URL query values.
+// See Route.Queries().
+func (r *Router) Queries(pairs ...string) *Route <span class="cov8" title="1">{
+        return r.NewRoute().Queries(pairs...)
+}</span>
+
+// Schemes registers a new route with a matcher for URL schemes.
+// See Route.Schemes().
+func (r *Router) Schemes(schemes ...string) *Route <span class="cov8" title="1">{
+        return r.NewRoute().Schemes(schemes...)
+}</span>
+
+// BuildVarsFunc registers a new route with a custom function for modifying
+// route variables before building a URL.
+func (r *Router) BuildVarsFunc(f BuildVarsFunc) *Route <span class="cov0" title="0">{
+        return r.NewRoute().BuildVarsFunc(f)
+}</span>
+
+// Walk walks the router and all its sub-routers, calling walkFn for each route
+// in the tree. The routes are walked in the order they were added. Sub-routers
+// are explored depth-first.
+func (r *Router) Walk(walkFn WalkFunc) error <span class="cov8" title="1">{
+        return r.walk(walkFn, []*Route{})
+}</span>
+
+// SkipRouter is used as a return value from WalkFuncs to indicate that the
+// router that walk is about to descend down to should be skipped.
+var SkipRouter = errors.New("skip this router")
+
+// WalkFunc is the type of the function called for each route visited by Walk.
+// At every invocation, it is given the current route, and the current router,
+// and a list of ancestor routes that lead to the current route.
+type WalkFunc func(route *Route, router *Router, ancestors []*Route) error
+
+func (r *Router) walk(walkFn WalkFunc, ancestors []*Route) error <span class="cov8" title="1">{
+        for _, t := range r.routes </span><span class="cov8" title="1">{
+                err := walkFn(t, r, ancestors)
+                if err == SkipRouter </span><span class="cov8" title="1">{
+                        continue</span>
+                }
+                <span class="cov8" title="1">if err != nil </span><span class="cov8" title="1">{
+                        return err
+                }</span>
+                <span class="cov8" title="1">for _, sr := range t.matchers </span><span class="cov8" title="1">{
+                        if h, ok := sr.(*Router); ok </span><span class="cov8" title="1">{
+                                ancestors = append(ancestors, t)
+                                err := h.walk(walkFn, ancestors)
+                                if err != nil </span><span class="cov0" title="0">{
+                                        return err
+                                }</span>
+                                <span class="cov8" title="1">ancestors = ancestors[:len(ancestors)-1]</span>
+                        }
+                }
+                <span class="cov8" title="1">if h, ok := t.handler.(*Router); ok </span><span class="cov8" title="1">{
+                        ancestors = append(ancestors, t)
+                        err := h.walk(walkFn, ancestors)
+                        if err != nil </span><span class="cov0" title="0">{
+                                return err
+                        }</span>
+                        <span class="cov8" title="1">ancestors = ancestors[:len(ancestors)-1]</span>
+                }
+        }
+        <span class="cov8" title="1">return nil</span>
+}
+
+// ----------------------------------------------------------------------------
+// Context
+// ----------------------------------------------------------------------------
+
+// RouteMatch stores information about a matched route.
+type RouteMatch struct {
+        Route   *Route
+        Handler http.Handler
+        Vars    map[string]string
+
+        // MatchErr is set to appropriate matching error
+        // It is set to ErrMethodMismatch if there is a mismatch in
+        // the request method and route method
+        MatchErr error
+}
+
+type contextKey int
+
+const (
+        varsKey contextKey = iota
+        routeKey
+        routerKey
+)
+
+// Vars returns the route variables for the current request, if any.
+func Vars(r *http.Request) map[string]string <span class="cov8" title="1">{
+        if rv := r.Context().Value(varsKey); rv != nil </span><span class="cov8" title="1">{
+                return rv.(map[string]string)
+        }</span>
+        <span class="cov8" title="1">return nil</span>
+}
+
+// CurrentRoute returns the matched route for the current request, if any.
+// This only works when called inside the handler of the matched route
+// because the matched route is stored in the request context which is cleared
+// after the handler returns.
+func CurrentRoute(r *http.Request) *Route <span class="cov8" title="1">{
+        if rv := r.Context().Value(routeKey); rv != nil </span><span class="cov8" title="1">{
+                return rv.(*Route)
+        }</span>
+        <span class="cov8" title="1">return nil</span>
+}
+
+func CurrentRouter(r *http.Request) *Router <span class="cov8" title="1">{
+        if rv := r.Context().Value(routerKey); rv != nil </span><span class="cov8" title="1">{
+                return rv.(*Router)
+        }</span>
+        <span class="cov8" title="1">return nil</span>
+}
+
+// requestWithVars adds the matched vars to the request ctx.
+// It shortcuts the operation when the vars are empty.
+func requestWithVars(r *http.Request, vars map[string]string) *http.Request <span class="cov8" title="1">{
+        if len(vars) == 0 </span><span class="cov8" title="1">{
+                return r
+        }</span>
+        <span class="cov8" title="1">ctx := context.WithValue(r.Context(), varsKey, vars)
+        return r.WithContext(ctx)</span>
+}
+
+// requestWithRouteAndVars adds the matched route and vars to the request ctx.
+// It saves extra allocations in cloning the request once and skipping the
+//
+//        population of empty vars, which in turn mux.Vars can handle gracefully.
+func requestWithRouteAndVars(r *http.Request, route *Route, vars map[string]string) *http.Request <span class="cov8" title="1">{
+        ctx := context.WithValue(r.Context(), routeKey, route)
+        if len(vars) &gt; 0 </span><span class="cov8" title="1">{
+                ctx = context.WithValue(ctx, varsKey, vars)
+        }</span>
+        <span class="cov8" title="1">return r.WithContext(ctx)</span>
+}
+
+func requestWithRouter(r *http.Request, router *Router) *http.Request <span class="cov8" title="1">{
+        ctx := context.WithValue(r.Context(), routerKey, router)
+        return r.WithContext(ctx)
+}</span>
+
+// ----------------------------------------------------------------------------
+// Helpers
+// ----------------------------------------------------------------------------
+
+// cleanPath returns the canonical path for p, eliminating . and .. elements.
+// Borrowed from the net/http package.
+func cleanPath(p string) string <span class="cov8" title="1">{
+        if p == "" </span><span class="cov0" title="0">{
+                return "/"
+        }</span>
+        <span class="cov8" title="1">if p[0] != '/' </span><span class="cov0" title="0">{
+                p = "/" + p
+        }</span>
+        <span class="cov8" title="1">np := path.Clean(p)
+        // path.Clean removes trailing slash except for root;
+        // put the trailing slash back if necessary.
+        if p[len(p)-1] == '/' &amp;&amp; np != "/" </span><span class="cov8" title="1">{
+                np += "/"
+        }</span>
+
+        <span class="cov8" title="1">return np</span>
+}
+
+// replaceURLPath prints an url.URL with a different path.
+func replaceURLPath(u *url.URL, p string) string <span class="cov8" title="1">{
+        // Operate on a copy of the request url.
+        u2 := *u
+        u2.Path = p
+        return u2.String()
+}</span>
+
+// uniqueVars returns an error if two slices contain duplicated strings.
+func uniqueVars(s1, s2 []string) error <span class="cov8" title="1">{
+        for _, v1 := range s1 </span><span class="cov8" title="1">{
+                for _, v2 := range s2 </span><span class="cov8" title="1">{
+                        if v1 == v2 </span><span class="cov8" title="1">{
+                                return fmt.Errorf("mux: duplicated route variable %q", v2)
+                        }</span>
+                }
+        }
+        <span class="cov8" title="1">return nil</span>
+}
+
+// checkPairs returns the count of strings passed in, and an error if
+// the count is not an even number.
+func checkPairs(pairs ...string) (int, error) <span class="cov8" title="1">{
+        length := len(pairs)
+        if length%2 != 0 </span><span class="cov0" title="0">{
+                return length, fmt.Errorf(
+                        "mux: number of parameters must be multiple of 2, got %v", pairs)
+        }</span>
+        <span class="cov8" title="1">return length, nil</span>
+}
+
+// mapFromPairsToString converts variadic string parameters to a
+// string to string map.
+func mapFromPairsToString(pairs ...string) (map[string]string, error) <span class="cov8" title="1">{
+        length, err := checkPairs(pairs...)
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+        <span class="cov8" title="1">m := make(map[string]string, length/2)
+        for i := 0; i &lt; length; i += 2 </span><span class="cov8" title="1">{
+                m[pairs[i]] = pairs[i+1]
+        }</span>
+        <span class="cov8" title="1">return m, nil</span>
+}
+
+// mapFromPairsToRegex converts variadic string parameters to a
+// string to regex map.
+func mapFromPairsToRegex(pairs ...string) (map[string]*regexp.Regexp, error) <span class="cov8" title="1">{
+        length, err := checkPairs(pairs...)
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+        <span class="cov8" title="1">m := make(map[string]*regexp.Regexp, length/2)
+        for i := 0; i &lt; length; i += 2 </span><span class="cov8" title="1">{
+                regex, err := RegexpCompileFunc(pairs[i+1])
+                if err != nil </span><span class="cov0" title="0">{
+                        return nil, err
+                }</span>
+                <span class="cov8" title="1">m[pairs[i]] = regex</span>
+        }
+        <span class="cov8" title="1">return m, nil</span>
+}
+
+// matchInArray returns true if the given string value is in the array.
+func matchInArray(arr []string, value string) bool <span class="cov8" title="1">{
+        for _, v := range arr </span><span class="cov8" title="1">{
+                if v == value </span><span class="cov8" title="1">{
+                        return true
+                }</span>
+        }
+        <span class="cov8" title="1">return false</span>
+}
+
+// matchMapWithString returns true if the given key/value pairs exist in a given map.
+func matchMapWithString(toCheck map[string]string, toMatch map[string][]string, canonicalKey bool) bool <span class="cov8" title="1">{
+        for k, v := range toCheck </span><span class="cov8" title="1">{
+                // Check if key exists.
+                if canonicalKey </span><span class="cov8" title="1">{
+                        k = http.CanonicalHeaderKey(k)
+                }</span>
+                <span class="cov8" title="1">if values := toMatch[k]; values == nil </span><span class="cov8" title="1">{
+                        return false
+                }</span> else<span class="cov8" title="1"> if v != "" </span><span class="cov8" title="1">{
+                        // If value was defined as an empty string we only check that the
+                        // key exists. Otherwise we also check for equality.
+                        valueExists := false
+                        for _, value := range values </span><span class="cov8" title="1">{
+                                if v == value </span><span class="cov8" title="1">{
+                                        valueExists = true
+                                        break</span>
+                                }
+                        }
+                        <span class="cov8" title="1">if !valueExists </span><span class="cov8" title="1">{
+                                return false
+                        }</span>
+                }
+        }
+        <span class="cov8" title="1">return true</span>
+}
+
+// matchMapWithRegex returns true if the given key/value pairs exist in a given map compiled against
+// the given regex
+func matchMapWithRegex(toCheck map[string]*regexp.Regexp, toMatch map[string][]string, canonicalKey bool) bool <span class="cov8" title="1">{
+        for k, v := range toCheck </span><span class="cov8" title="1">{
+                // Check if key exists.
+                if canonicalKey </span><span class="cov8" title="1">{
+                        k = http.CanonicalHeaderKey(k)
+                }</span>
+                <span class="cov8" title="1">if values := toMatch[k]; values == nil </span><span class="cov0" title="0">{
+                        return false
+                }</span> else<span class="cov8" title="1"> if v != nil </span><span class="cov8" title="1">{
+                        // If value was defined as an empty string we only check that the
+                        // key exists. Otherwise we also check for equality.
+                        valueExists := false
+                        for _, value := range values </span><span class="cov8" title="1">{
+                                if v.MatchString(value) </span><span class="cov8" title="1">{
+                                        valueExists = true
+                                        break</span>
+                                }
+                        }
+                        <span class="cov8" title="1">if !valueExists </span><span class="cov8" title="1">{
+                                return false
+                        }</span>
+                }
+        }
+        <span class="cov8" title="1">return true</span>
+}
+
+// methodNotAllowed replies to the request with an HTTP status code 405.
+func methodNotAllowed(w http.ResponseWriter, r *http.Request) <span class="cov8" title="1">{
+        w.WriteHeader(http.StatusMethodNotAllowed)
+}</span>
+
+// methodNotAllowedHandler returns a simple request handler
+// that replies to each request with a status code 405.
+func methodNotAllowedHandler() http.Handler <span class="cov8" title="1">{ return http.HandlerFunc(methodNotAllowed) }</span>
+</pre>
+		
+		<pre class="file" id="file2" style="display: none">// Copyright 2012 The Gorilla Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+package mux
+
+import (
+        "bytes"
+        "fmt"
+        "net/http"
+        "net/url"
+        "regexp"
+        "strconv"
+        "strings"
+)
+
+type routeRegexpOptions struct {
+        strictSlash    bool
+        useEncodedPath bool
+}
+
+type regexpType int
+
+const (
+        regexpTypePath regexpType = iota
+        regexpTypeHost
+        regexpTypePrefix
+        regexpTypeQuery
+)
+
+// newRouteRegexp parses a route template and returns a routeRegexp,
+// used to match a host, a path or a query string.
+//
+// It will extract named variables, assemble a regexp to be matched, create
+// a "reverse" template to build URLs and compile regexps to validate variable
+// values used in URL building.
+//
+// Previously we accepted only Python-like identifiers for variable
+// names ([a-zA-Z_][a-zA-Z0-9_]*), but currently the only restriction is that
+// name and pattern can't be empty, and names can't contain a colon.
+func newRouteRegexp(tpl string, typ regexpType, options routeRegexpOptions) (*routeRegexp, error) <span class="cov8" title="1">{
+        // Check if it is well-formed.
+        idxs, errBraces := braceIndices(tpl)
+        if errBraces != nil </span><span class="cov0" title="0">{
+                return nil, errBraces
+        }</span>
+        // Backup the original.
+        <span class="cov8" title="1">template := tpl
+        // Now let's parse it.
+        defaultPattern := "[^/]+"
+        if typ == regexpTypeQuery </span><span class="cov8" title="1">{
+                defaultPattern = ".*"
+        }</span> else<span class="cov8" title="1"> if typ == regexpTypeHost </span><span class="cov8" title="1">{
+                defaultPattern = "[^.]+"
+        }</span>
+        // Only match strict slash if not matching
+        <span class="cov8" title="1">if typ != regexpTypePath </span><span class="cov8" title="1">{
+                options.strictSlash = false
+        }</span>
+        // Set a flag for strictSlash.
+        <span class="cov8" title="1">endSlash := false
+        if options.strictSlash &amp;&amp; strings.HasSuffix(tpl, "/") </span><span class="cov8" title="1">{
+                tpl = tpl[:len(tpl)-1]
+                endSlash = true
+        }</span>
+        <span class="cov8" title="1">varsN := make([]string, len(idxs)/2)
+        varsR := make([]*regexp.Regexp, len(idxs)/2)
+
+        var pattern, reverse strings.Builder
+        pattern.WriteByte('^')
+
+        var end, colonIdx, groupIdx int
+        var err error
+        var patt, param, name string
+        for i := 0; i &lt; len(idxs); i += 2 </span><span class="cov8" title="1">{
+                // Set all values we are interested in.
+                groupIdx = i / 2
+
+                raw := tpl[end:idxs[i]]
+                end = idxs[i+1]
+                tag := tpl[idxs[i]:end]
+
+                // trim braces from tag
+                param = tag[1 : len(tag)-1]
+
+                colonIdx = strings.Index(param, ":")
+                if colonIdx == -1 </span><span class="cov8" title="1">{
+                        name = param
+                        patt = defaultPattern
+                }</span> else<span class="cov8" title="1"> {
+                        name = param[0:colonIdx]
+                        patt = param[colonIdx+1:]
+                }</span>
+
+                // Name or pattern can't be empty.
+                <span class="cov8" title="1">if name == "" || patt == "" </span><span class="cov8" title="1">{
+                        return nil, fmt.Errorf("mux: missing name or pattern in %q", tag)
+                }</span>
+                // Build the regexp pattern.
+                <span class="cov8" title="1">groupName := varGroupName(groupIdx)
+
+                pattern.WriteString(regexp.QuoteMeta(raw) + "(?P&lt;" + groupName + "&gt;" + patt + ")")
+
+                // Build the reverse template.
+                reverse.WriteString(raw + "%s")
+
+                // Append variable name and compiled pattern.
+                varsN[groupIdx] = name
+                varsR[groupIdx], err = RegexpCompileFunc("^" + patt + "$")
+                if err != nil </span><span class="cov8" title="1">{
+                        return nil, fmt.Errorf("mux: error compiling regex for %q: %w", tag, err)
+                }</span>
+        }
+        // Add the remaining.
+        <span class="cov8" title="1">raw := tpl[end:]
+        pattern.WriteString(regexp.QuoteMeta(raw))
+        if options.strictSlash </span><span class="cov8" title="1">{
+                pattern.WriteString("[/]?")
+        }</span>
+        <span class="cov8" title="1">if typ == regexpTypeQuery </span><span class="cov8" title="1">{
+                // Add the default pattern if the query value is empty
+                if queryVal := strings.SplitN(template, "=", 2)[1]; queryVal == "" </span><span class="cov8" title="1">{
+                        pattern.WriteString(defaultPattern)
+                }</span>
+        }
+        <span class="cov8" title="1">if typ != regexpTypePrefix </span><span class="cov8" title="1">{
+                pattern.WriteByte('$')
+        }</span>
+
+        // Compile full regexp.
+        <span class="cov8" title="1">patternStr := pattern.String()
+        reg, errCompile := RegexpCompileFunc(patternStr)
+        if errCompile != nil </span><span class="cov0" title="0">{
+                return nil, errCompile
+        }</span>
+
+        // Check for capturing groups which used to work in older versions
+        <span class="cov8" title="1">if reg.NumSubexp() != len(idxs)/2 </span><span class="cov8" title="1">{
+                panic(fmt.Sprintf("route %s contains capture groups in its regexp. ", template) +
+                        "Only non-capturing groups are accepted: e.g. (?:pattern) instead of (pattern)")</span>
+        }
+
+        <span class="cov8" title="1">var wildcardHostPort bool
+        if typ == regexpTypeHost </span><span class="cov8" title="1">{
+                if !strings.Contains(patternStr, ":") </span><span class="cov8" title="1">{
+                        wildcardHostPort = true
+                }</span>
+        }
+        <span class="cov8" title="1">reverse.WriteString(raw)
+        if endSlash </span><span class="cov8" title="1">{
+                reverse.WriteByte('/')
+        }</span>
+
+        // Done!
+        <span class="cov8" title="1">return &amp;routeRegexp{
+                template:         template,
+                regexpType:       typ,
+                options:          options,
+                regexp:           reg,
+                reverse:          reverse.String(),
+                varsN:            varsN,
+                varsR:            varsR,
+                wildcardHostPort: wildcardHostPort,
+        }, nil</span>
+}
+
+// routeRegexp stores a regexp to match a host or path and information to
+// collect and validate route variables.
+type routeRegexp struct {
+        // The unmodified template.
+        template string
+        // The type of match
+        regexpType regexpType
+        // Options for matching
+        options routeRegexpOptions
+        // Expanded regexp.
+        regexp *regexp.Regexp
+        // Reverse template.
+        reverse string
+        // Variable names.
+        varsN []string
+        // Variable regexps (validators).
+        varsR []*regexp.Regexp
+        // Wildcard host-port (no strict port match in hostname)
+        wildcardHostPort bool
+}
+
+// Match matches the regexp against the URL host or path.
+func (r *routeRegexp) Match(req *http.Request, match *RouteMatch) bool <span class="cov8" title="1">{
+        if r.regexpType == regexpTypeHost </span><span class="cov8" title="1">{
+                host := getHost(req)
+                if r.wildcardHostPort </span><span class="cov8" title="1">{
+                        // Don't be strict on the port match
+                        if i := strings.Index(host, ":"); i != -1 </span><span class="cov8" title="1">{
+                                host = host[:i]
+                        }</span>
+                }
+                <span class="cov8" title="1">return r.regexp.MatchString(host)</span>
+        }
+
+        <span class="cov8" title="1">if r.regexpType == regexpTypeQuery </span><span class="cov8" title="1">{
+                return r.matchQueryString(req)
+        }</span>
+        <span class="cov8" title="1">path := req.URL.Path
+        if r.options.useEncodedPath </span><span class="cov8" title="1">{
+                path = req.URL.EscapedPath()
+        }</span>
+        <span class="cov8" title="1">return r.regexp.MatchString(path)</span>
+}
+
+// url builds a URL part using the given values.
+func (r *routeRegexp) url(values map[string]string) (string, error) <span class="cov8" title="1">{
+        urlValues := make([]interface{}, len(r.varsN))
+        for k, v := range r.varsN </span><span class="cov8" title="1">{
+                value, ok := values[v]
+                if !ok </span><span class="cov0" title="0">{
+                        return "", fmt.Errorf("mux: missing route variable %q", v)
+                }</span>
+                <span class="cov8" title="1">if r.regexpType == regexpTypeQuery </span><span class="cov8" title="1">{
+                        value = url.QueryEscape(value)
+                }</span>
+                <span class="cov8" title="1">urlValues[k] = value</span>
+        }
+        <span class="cov8" title="1">rv := fmt.Sprintf(r.reverse, urlValues...)
+        if !r.regexp.MatchString(rv) </span><span class="cov0" title="0">{
+                // The URL is checked against the full regexp, instead of checking
+                // individual variables. This is faster but to provide a good error
+                // message, we check individual regexps if the URL doesn't match.
+                for k, v := range r.varsN </span><span class="cov0" title="0">{
+                        if !r.varsR[k].MatchString(values[v]) </span><span class="cov0" title="0">{
+                                return "", fmt.Errorf(
+                                        "mux: variable %q doesn't match, expected %q", values[v],
+                                        r.varsR[k].String())
+                        }</span>
+                }
+        }
+        <span class="cov8" title="1">return rv, nil</span>
+}
+
+// getURLQuery returns a single query parameter from a request URL.
+// For a URL with foo=bar&amp;baz=ding, we return only the relevant key
+// value pair for the routeRegexp.
+func (r *routeRegexp) getURLQuery(req *http.Request) string <span class="cov8" title="1">{
+        if r.regexpType != regexpTypeQuery </span><span class="cov0" title="0">{
+                return ""
+        }</span>
+        <span class="cov8" title="1">templateKey := strings.SplitN(r.template, "=", 2)[0]
+        val, ok := findFirstQueryKey(req.URL.RawQuery, templateKey)
+        if ok </span><span class="cov8" title="1">{
+                return templateKey + "=" + val
+        }</span>
+        <span class="cov8" title="1">return ""</span>
+}
+
+// findFirstQueryKey returns the same result as (*url.URL).Query()[key][0].
+// If key was not found, empty string and false is returned.
+func findFirstQueryKey(rawQuery, key string) (value string, ok bool) <span class="cov8" title="1">{
+        query := []byte(rawQuery)
+        for len(query) &gt; 0 </span><span class="cov8" title="1">{
+                foundKey := query
+                if i := bytes.IndexAny(foundKey, "&amp;;"); i &gt;= 0 </span><span class="cov8" title="1">{
+                        foundKey, query = foundKey[:i], foundKey[i+1:]
+                }</span> else<span class="cov8" title="1"> {
+                        query = query[:0]
+                }</span>
+                <span class="cov8" title="1">if len(foundKey) == 0 </span><span class="cov0" title="0">{
+                        continue</span>
+                }
+                <span class="cov8" title="1">var value []byte
+                if i := bytes.IndexByte(foundKey, '='); i &gt;= 0 </span><span class="cov8" title="1">{
+                        foundKey, value = foundKey[:i], foundKey[i+1:]
+                }</span>
+                <span class="cov8" title="1">if len(foundKey) &lt; len(key) </span><span class="cov8" title="1">{
+                        // Cannot possibly be key.
+                        continue</span>
+                }
+                <span class="cov8" title="1">keyString, err := url.QueryUnescape(string(foundKey))
+                if err != nil </span><span class="cov0" title="0">{
+                        continue</span>
+                }
+                <span class="cov8" title="1">if keyString != key </span><span class="cov8" title="1">{
+                        continue</span>
+                }
+                <span class="cov8" title="1">valueString, err := url.QueryUnescape(string(value))
+                if err != nil </span><span class="cov0" title="0">{
+                        continue</span>
+                }
+                <span class="cov8" title="1">return valueString, true</span>
+        }
+        <span class="cov8" title="1">return "", false</span>
+}
+
+func (r *routeRegexp) matchQueryString(req *http.Request) bool <span class="cov8" title="1">{
+        return r.regexp.MatchString(r.getURLQuery(req))
+}</span>
+
+// braceIndices returns the first level curly brace indices from a string.
+// It returns an error in case of unbalanced braces.
+func braceIndices(s string) ([]int, error) <span class="cov8" title="1">{
+        var level, idx int
+        var idxs []int
+        for i := 0; i &lt; len(s); i++ </span><span class="cov8" title="1">{
+                switch s[i] </span>{
+                case '{':<span class="cov8" title="1">
+                        if level++; level == 1 </span><span class="cov8" title="1">{
+                                idx = i
+                        }</span>
+                case '}':<span class="cov8" title="1">
+                        if level--; level == 0 </span><span class="cov8" title="1">{
+                                idxs = append(idxs, idx, i+1)
+                        }</span> else<span class="cov8" title="1"> if level &lt; 0 </span><span class="cov0" title="0">{
+                                return nil, fmt.Errorf("mux: unbalanced braces in %q", s)
+                        }</span>
+                }
+        }
+        <span class="cov8" title="1">if level != 0 </span><span class="cov0" title="0">{
+                return nil, fmt.Errorf("mux: unbalanced braces in %q", s)
+        }</span>
+        <span class="cov8" title="1">return idxs, nil</span>
+}
+
+// varGroupName builds a capturing group name for the indexed variable.
+func varGroupName(idx int) string <span class="cov8" title="1">{
+        return "v" + strconv.Itoa(idx)
+}</span>
+
+// ----------------------------------------------------------------------------
+// routeRegexpGroup
+// ----------------------------------------------------------------------------
+
+// routeRegexpGroup groups the route matchers that carry variables.
+type routeRegexpGroup struct {
+        host    *routeRegexp
+        path    *routeRegexp
+        queries []*routeRegexp
+}
+
+// setMatch extracts the variables from the URL once a route matches.
+func (v routeRegexpGroup) setMatch(req *http.Request, m *RouteMatch, r *Route) <span class="cov8" title="1">{
+        // Store host variables.
+        if v.host != nil </span><span class="cov8" title="1">{
+                if len(v.host.varsN) &gt; 0 </span><span class="cov8" title="1">{
+                        host := getHost(req)
+                        if v.host.wildcardHostPort </span><span class="cov8" title="1">{
+                                // Don't be strict on the port match
+                                if i := strings.Index(host, ":"); i != -1 </span><span class="cov8" title="1">{
+                                        host = host[:i]
+                                }</span>
+                        }
+                        <span class="cov8" title="1">matches := v.host.regexp.FindStringSubmatchIndex(host)
+                        if len(matches) &gt; 0 </span><span class="cov8" title="1">{
+                                m.Vars = extractVars(host, matches, v.host.varsN, m.Vars)
+                        }</span>
+                }
+        }
+        <span class="cov8" title="1">path := req.URL.Path
+        if r.useEncodedPath </span><span class="cov8" title="1">{
+                path = req.URL.EscapedPath()
+        }</span>
+        // Store path variables.
+        <span class="cov8" title="1">if v.path != nil </span><span class="cov8" title="1">{
+                if len(v.path.varsN) &gt; 0 </span><span class="cov8" title="1">{
+                        matches := v.path.regexp.FindStringSubmatchIndex(path)
+                        if len(matches) &gt; 0 </span><span class="cov8" title="1">{
+                                m.Vars = extractVars(path, matches, v.path.varsN, m.Vars)
+                        }</span>
+                }
+                // Check if we should redirect.
+                <span class="cov8" title="1">if v.path.options.strictSlash </span><span class="cov8" title="1">{
+                        p1 := strings.HasSuffix(path, "/")
+                        p2 := strings.HasSuffix(v.path.template, "/")
+                        if p1 != p2 </span><span class="cov8" title="1">{
+                                p := req.URL.Path
+                                if p1 </span><span class="cov8" title="1">{
+                                        p = p[:len(p)-1]
+                                }</span> else<span class="cov8" title="1"> {
+                                        p += "/"
+                                }</span>
+                                <span class="cov8" title="1">u := replaceURLPath(req.URL, p)
+                                m.Handler = http.RedirectHandler(u, http.StatusMovedPermanently)</span>
+                        }
+                }
+        }
+        // Store query string variables.
+        <span class="cov8" title="1">for _, q := range v.queries </span><span class="cov8" title="1">{
+                if len(q.varsN) &gt; 0 </span><span class="cov8" title="1">{
+                        queryURL := q.getURLQuery(req)
+                        matches := q.regexp.FindStringSubmatchIndex(queryURL)
+                        if len(matches) &gt; 0 </span><span class="cov8" title="1">{
+                                m.Vars = extractVars(queryURL, matches, q.varsN, m.Vars)
+                        }</span>
+                }
+        }
+}
+
+// getHost tries its best to return the request host.
+// According to section 14.23 of RFC 2616 the Host header
+// can include the port number if the default value of 80 is not used.
+func getHost(r *http.Request) string <span class="cov8" title="1">{
+        if r.URL.IsAbs() </span><span class="cov8" title="1">{
+                return r.URL.Host
+        }</span>
+        <span class="cov8" title="1">return r.Host</span>
+}
+
+func extractVars(input string, matches []int, names []string, output map[string]string) map[string]string <span class="cov8" title="1">{
+        for i, name := range names </span><span class="cov8" title="1">{
+                if output == nil </span><span class="cov8" title="1">{
+                        output = make(map[string]string, len(names))
+                }</span>
+                <span class="cov8" title="1">output[name] = input[matches[2*i+2]:matches[2*i+3]]</span>
+        }
+        <span class="cov8" title="1">return output</span>
+}
+</pre>
+		
+		<pre class="file" id="file3" style="display: none">// Copyright 2012 The Gorilla Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+package mux
+
+import (
+        "errors"
+        "fmt"
+        "net/http"
+        "net/url"
+        "regexp"
+        "strings"
+)
+
+// Route stores information to match a request and build URLs.
+type Route struct {
+        // Request handler for the route.
+        handler http.Handler
+        // If true, this route never matches: it is only used to build URLs.
+        buildOnly bool
+        // The name used to build URLs.
+        name string
+        // Error resulted from building a route.
+        err error
+
+        // The meta data associated with this route
+        metadata map[any]any
+
+        // "global" reference to all named routes
+        namedRoutes map[string]*Route
+
+        // route specific middleware
+        middlewares []middleware
+
+        // config possibly passed in from `Router`
+        routeConf
+}
+
+// SkipClean reports whether path cleaning is enabled for this route via
+// Router.SkipClean.
+func (r *Route) SkipClean() bool <span class="cov8" title="1">{
+        return r.skipClean
+}</span>
+
+// Match matches the route against the request.
+func (r *Route) Match(req *http.Request, match *RouteMatch) bool <span class="cov8" title="1">{
+        if r.buildOnly || r.err != nil </span><span class="cov8" title="1">{
+                return false
+        }</span>
+
+        <span class="cov8" title="1">var matchErr error
+
+        // Match everything.
+        for _, m := range r.matchers </span><span class="cov8" title="1">{
+                if matched := m.Match(req, match); !matched </span><span class="cov8" title="1">{
+                        if _, ok := m.(methodMatcher); ok </span><span class="cov8" title="1">{
+                                matchErr = ErrMethodMismatch
+                                continue</span>
+                        }
+
+                        // Multiple routes may share the same path but use different HTTP methods. For instance:
+                        // Route 1: POST "/users/{id}".
+                        // Route 2: GET "/users/{id}", parameters: "id": "[0-9]+".
+                        //
+                        // The router must handle these cases correctly. For a GET request to "/users/abc" with "id" as "-2",
+                        // The router should return a "Not Found" error as no route fully matches this request.
+                        <span class="cov8" title="1">if rr, ok := m.(*routeRegexp); ok </span><span class="cov8" title="1">{
+                                if rr.regexpType == regexpTypeQuery </span><span class="cov8" title="1">{
+                                        matchErr = ErrNotFound
+                                        break</span>
+                                }
+                        }
+
+                        // Ignore ErrNotFound errors. These errors arise from match call
+                        // to Subrouters.
+                        //
+                        // This prevents subsequent matching subrouters from failing to
+                        // run middleware. If not ignored, the middleware would see a
+                        // non-nil MatchErr and be skipped, even when there was a
+                        // matching route.
+                        <span class="cov8" title="1">if match.MatchErr == ErrNotFound </span><span class="cov8" title="1">{
+                                match.MatchErr = nil
+                        }</span>
+
+                        <span class="cov8" title="1">matchErr = nil // nolint:ineffassign
+                        return false</span>
+                }
+        }
+
+        <span class="cov8" title="1">if matchErr != nil </span><span class="cov8" title="1">{
+                match.MatchErr = matchErr
+                return false
+        }</span>
+
+        <span class="cov8" title="1">if match.MatchErr != nil &amp;&amp; r.handler != nil </span><span class="cov8" title="1">{
+                // We found a route which matches request method, clear MatchErr
+                match.MatchErr = nil
+                // Then override the mis-matched handler
+                match.Handler = r.handler
+        }</span>
+
+        // Yay, we have a match. Let's collect some info about it.
+        <span class="cov8" title="1">if match.Route == nil </span><span class="cov8" title="1">{
+                match.Route = r
+        }</span>
+        <span class="cov8" title="1">if match.Handler == nil </span><span class="cov8" title="1">{
+                match.Handler = r.GetHandlerWithMiddlewares()
+        }</span>
+
+        // Set variables.
+        <span class="cov8" title="1">r.regexp.setMatch(req, match, r)
+        return true</span>
+}
+
+// ----------------------------------------------------------------------------
+// Route attributes
+// ----------------------------------------------------------------------------
+
+// GetError returns an error resulted from building the route, if any.
+func (r *Route) GetError() error <span class="cov8" title="1">{
+        return r.err
+}</span>
+
+// BuildOnly sets the route to never match: it is only used to build URLs.
+func (r *Route) BuildOnly() *Route <span class="cov8" title="1">{
+        r.buildOnly = true
+        return r
+}</span>
+
+// MetaData -------------------------------------------------------------------
+
+// Metadata is used to set metadata on a route
+func (r *Route) Metadata(key any, value any) *Route <span class="cov8" title="1">{
+        if r.metadata == nil </span><span class="cov8" title="1">{
+                r.metadata = make(map[any]any)
+        }</span>
+
+        <span class="cov8" title="1">r.metadata[key] = value
+        return r</span>
+}
+
+// GetMetadata returns the metadata map for route
+func (r *Route) GetMetadata() map[any]any <span class="cov8" title="1">{
+        return r.metadata
+}</span>
+
+// MetadataContains returns whether or not the key is present in the metadata map
+func (r *Route) MetadataContains(key any) bool <span class="cov8" title="1">{
+        _, ok := r.metadata[key]
+        return ok
+}</span>
+
+// GetMetadataValue returns the value of a specific key in the metadata map. If the key is not present in the map mux.ErrMetadataKeyNotFound is returned
+func (r *Route) GetMetadataValue(key any) (any, error) <span class="cov8" title="1">{
+        value, ok := r.metadata[key]
+        if !ok </span><span class="cov8" title="1">{
+                return nil, ErrMetadataKeyNotFound
+        }</span>
+
+        <span class="cov8" title="1">return value, nil</span>
+}
+
+// GetMetadataValueOr returns the value of a specific key in the metadata map. If the key is not present in the metadata the fallback value is returned
+func (r *Route) GetMetadataValueOr(key any, fallbackValue any) any <span class="cov8" title="1">{
+        value, ok := r.metadata[key]
+        if !ok </span><span class="cov8" title="1">{
+                return fallbackValue
+        }</span>
+
+        <span class="cov8" title="1">return value</span>
+}
+
+// Handler --------------------------------------------------------------------
+
+// Handler sets a handler for the route.
+func (r *Route) Handler(handler http.Handler) *Route <span class="cov8" title="1">{
+        if r.err == nil </span><span class="cov8" title="1">{
+                r.handler = handler
+        }</span>
+        <span class="cov8" title="1">return r</span>
+}
+
+// HandlerFunc sets a handler function for the route.
+func (r *Route) HandlerFunc(f func(http.ResponseWriter, *http.Request)) *Route <span class="cov8" title="1">{
+        return r.Handler(http.HandlerFunc(f))
+}</span>
+
+// GetHandler returns the handler for the route, if any.
+func (r *Route) GetHandler() http.Handler <span class="cov8" title="1">{
+        return r.handler
+}</span>
+
+// GetHandlerWithMiddleware returns the route handler wrapped in the assigned middlewares.
+// If no middlewares are specified, just the handler, if any, is returned.
+func (r *Route) GetHandlerWithMiddlewares() http.Handler <span class="cov8" title="1">{
+        handler := r.handler
+
+        if handler != nil &amp;&amp; len(r.middlewares) &gt; 0 </span><span class="cov8" title="1">{
+                for i := len(r.middlewares) - 1; i &gt;= 0; i-- </span><span class="cov8" title="1">{
+                        handler = r.middlewares[i].Middleware(handler)
+                }</span>
+        }
+
+        <span class="cov8" title="1">return handler</span>
+}
+
+// Name -----------------------------------------------------------------------
+
+// Name sets the name for the route, used to build URLs.
+// It is an error to call Name more than once on a route.
+func (r *Route) Name(name string) *Route <span class="cov8" title="1">{
+        if r.name != "" </span><span class="cov8" title="1">{
+                r.err = fmt.Errorf("mux: route already has name %q, can't set %q",
+                        r.name, name)
+        }</span>
+        <span class="cov8" title="1">if r.err == nil </span><span class="cov8" title="1">{
+                r.name = name
+                r.namedRoutes[name] = r
+        }</span>
+        <span class="cov8" title="1">return r</span>
+}
+
+// GetName returns the name for the route, if any.
+func (r *Route) GetName() string <span class="cov8" title="1">{
+        return r.name
+}</span>
+
+// ----------------------------------------------------------------------------
+// Matchers
+// ----------------------------------------------------------------------------
+
+// matcher types try to match a request.
+type matcher interface {
+        Match(*http.Request, *RouteMatch) bool
+}
+
+// addMatcher adds a matcher to the route.
+func (r *Route) addMatcher(m matcher) *Route <span class="cov8" title="1">{
+        if r.err == nil </span><span class="cov8" title="1">{
+                r.matchers = append(r.matchers, m)
+        }</span>
+        <span class="cov8" title="1">return r</span>
+}
+
+// addRegexpMatcher adds a host or path matcher and builder to a route.
+func (r *Route) addRegexpMatcher(tpl string, typ regexpType) error <span class="cov8" title="1">{
+        if r.err != nil </span><span class="cov0" title="0">{
+                return r.err
+        }</span>
+        <span class="cov8" title="1">if typ == regexpTypePath || typ == regexpTypePrefix </span><span class="cov8" title="1">{
+                if len(tpl) &gt; 0 &amp;&amp; tpl[0] != '/' </span><span class="cov0" title="0">{
+                        return fmt.Errorf("mux: path must start with a slash, got %q", tpl)
+                }</span>
+                <span class="cov8" title="1">if r.regexp.path != nil </span><span class="cov8" title="1">{
+                        tpl = strings.TrimRight(r.regexp.path.template, "/") + tpl
+                }</span>
+        }
+        <span class="cov8" title="1">rr, err := newRouteRegexp(tpl, typ, routeRegexpOptions{
+                strictSlash:    r.strictSlash,
+                useEncodedPath: r.useEncodedPath,
+        })
+        if err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+        <span class="cov8" title="1">for _, q := range r.regexp.queries </span><span class="cov8" title="1">{
+                if err = uniqueVars(rr.varsN, q.varsN); err != nil </span><span class="cov0" title="0">{
+                        return err
+                }</span>
+        }
+        <span class="cov8" title="1">if typ == regexpTypeHost </span><span class="cov8" title="1">{
+                if r.regexp.path != nil </span><span class="cov0" title="0">{
+                        if err = uniqueVars(rr.varsN, r.regexp.path.varsN); err != nil </span><span class="cov0" title="0">{
+                                return err
+                        }</span>
+                }
+                <span class="cov8" title="1">r.regexp.host = rr</span>
+        } else<span class="cov8" title="1"> {
+                if r.regexp.host != nil </span><span class="cov8" title="1">{
+                        if err = uniqueVars(rr.varsN, r.regexp.host.varsN); err != nil </span><span class="cov8" title="1">{
+                                return err
+                        }</span>
+                }
+                <span class="cov8" title="1">if typ == regexpTypeQuery </span><span class="cov8" title="1">{
+                        r.regexp.queries = append(r.regexp.queries, rr)
+                }</span> else<span class="cov8" title="1"> {
+                        r.regexp.path = rr
+                }</span>
+        }
+        <span class="cov8" title="1">r.addMatcher(rr)
+        return nil</span>
+}
+
+// Headers --------------------------------------------------------------------
+
+// headerMatcher matches the request against header values.
+type headerMatcher map[string]string
+
+func (m headerMatcher) Match(r *http.Request, match *RouteMatch) bool <span class="cov8" title="1">{
+        return matchMapWithString(m, r.Header, true)
+}</span>
+
+// Headers adds a matcher for request header values.
+// It accepts a sequence of key/value pairs to be matched. For example:
+//
+//        r := mux.NewRouter().NewRoute()
+//        r.Headers("Content-Type", "application/json",
+//                  "X-Requested-With", "XMLHttpRequest")
+//
+// The above route will only match if both request header values match.
+// If the value is an empty string, it will match any value if the key is set.
+func (r *Route) Headers(pairs ...string) *Route <span class="cov8" title="1">{
+        if r.err == nil </span><span class="cov8" title="1">{
+                var headers map[string]string
+                headers, r.err = mapFromPairsToString(pairs...)
+                return r.addMatcher(headerMatcher(headers))
+        }</span>
+        <span class="cov0" title="0">return r</span>
+}
+
+// headerRegexMatcher matches the request against the route given a regex for the header
+type headerRegexMatcher map[string]*regexp.Regexp
+
+func (m headerRegexMatcher) Match(r *http.Request, match *RouteMatch) bool <span class="cov8" title="1">{
+        return matchMapWithRegex(m, r.Header, true)
+}</span>
+
+// HeadersRegexp accepts a sequence of key/value pairs, where the value has regex
+// support. For example:
+//
+//        r := mux.NewRouter().NewRoute()
+//        r.HeadersRegexp("Content-Type", "application/(text|json)",
+//                  "X-Requested-With", "XMLHttpRequest")
+//
+// The above route will only match if both the request header matches both regular expressions.
+// If the value is an empty string, it will match any value if the key is set.
+// Use the start and end of string anchors (^ and $) to match an exact value.
+func (r *Route) HeadersRegexp(pairs ...string) *Route <span class="cov8" title="1">{
+        if r.err == nil </span><span class="cov8" title="1">{
+                var headers map[string]*regexp.Regexp
+                headers, r.err = mapFromPairsToRegex(pairs...)
+                return r.addMatcher(headerRegexMatcher(headers))
+        }</span>
+        <span class="cov0" title="0">return r</span>
+}
+
+// Host -----------------------------------------------------------------------
+
+// Host adds a matcher for the URL host.
+// It accepts a template with zero or more URL variables enclosed by {}.
+// Variables can define an optional regexp pattern to be matched:
+//
+// - {name} matches anything until the next dot.
+//
+// - {name:pattern} matches the given regexp pattern.
+//
+// For example:
+//
+//        r := mux.NewRouter().NewRoute()
+//        r.Host("www.example.com")
+//        r.Host("{subdomain}.domain.com")
+//        r.Host("{subdomain:[a-z]+}.domain.com")
+//
+// Variable names must be unique in a given route. They can be retrieved
+// calling mux.Vars(request).
+func (r *Route) Host(tpl string) *Route <span class="cov8" title="1">{
+        r.err = r.addRegexpMatcher(tpl, regexpTypeHost)
+        return r
+}</span>
+
+// MatcherFunc ----------------------------------------------------------------
+
+// MatcherFunc is the function signature used by custom matchers.
+type MatcherFunc func(*http.Request, *RouteMatch) bool
+
+// Match returns the match for a given request.
+func (m MatcherFunc) Match(r *http.Request, match *RouteMatch) bool <span class="cov8" title="1">{
+        return m(r, match)
+}</span>
+
+// MatcherFunc adds a custom function to be used as request matcher.
+func (r *Route) MatcherFunc(f MatcherFunc) *Route <span class="cov8" title="1">{
+        return r.addMatcher(f)
+}</span>
+
+// Methods --------------------------------------------------------------------
+
+// methodMatcher matches the request against HTTP methods.
+type methodMatcher []string
+
+func (m methodMatcher) Match(r *http.Request, match *RouteMatch) bool <span class="cov8" title="1">{
+        return matchInArray(m, r.Method)
+}</span>
+
+// Methods adds a matcher for HTTP methods.
+// It accepts a sequence of one or more methods to be matched, e.g.:
+// "GET", "POST", "PUT".
+func (r *Route) Methods(methods ...string) *Route <span class="cov8" title="1">{
+        for k, v := range methods </span><span class="cov8" title="1">{
+                methods[k] = strings.ToUpper(v)
+        }</span>
+        <span class="cov8" title="1">return r.addMatcher(methodMatcher(methods))</span>
+}
+
+// Path -----------------------------------------------------------------------
+
+// Path adds a matcher for the URL path.
+// It accepts a template with zero or more URL variables enclosed by {}. The
+// template must start with a "/".
+// Variables can define an optional regexp pattern to be matched:
+//
+// - {name} matches anything until the next slash.
+//
+// - {name:pattern} matches the given regexp pattern.
+//
+// For example:
+//
+//        r := mux.NewRouter().NewRoute()
+//        r.Path("/products/").Handler(ProductsHandler)
+//        r.Path("/products/{key}").Handler(ProductsHandler)
+//        r.Path("/articles/{category}/{id:[0-9]+}").
+//          Handler(ArticleHandler)
+//
+// Variable names must be unique in a given route. They can be retrieved
+// calling mux.Vars(request).
+func (r *Route) Path(tpl string) *Route <span class="cov8" title="1">{
+        r.err = r.addRegexpMatcher(tpl, regexpTypePath)
+        return r
+}</span>
+
+// PathPrefix -----------------------------------------------------------------
+
+// PathPrefix adds a matcher for the URL path prefix. This matches if the given
+// template is a prefix of the full URL path. See Route.Path() for details on
+// the tpl argument.
+//
+// Note that it does not treat slashes specially ("/foobar/" will be matched by
+// the prefix "/foo") so you may want to use a trailing slash here.
+//
+// Also note that the setting of Router.StrictSlash() has no effect on routes
+// with a PathPrefix matcher.
+func (r *Route) PathPrefix(tpl string) *Route <span class="cov8" title="1">{
+        r.err = r.addRegexpMatcher(tpl, regexpTypePrefix)
+        return r
+}</span>
+
+// Query ----------------------------------------------------------------------
+
+// Queries adds a matcher for URL query values.
+// It accepts a sequence of key/value pairs. Values may define variables.
+// For example:
+//
+//        r := mux.NewRouter().NewRoute()
+//        r.Queries("foo", "bar", "id", "{id:[0-9]+}")
+//
+// The above route will only match if the URL contains the defined queries
+// values, e.g.: ?foo=bar&amp;id=42.
+//
+// If the value is an empty string, it will match any value if the key is set.
+//
+// Variables can define an optional regexp pattern to be matched:
+//
+// - {name} matches anything until the next slash.
+//
+// - {name:pattern} matches the given regexp pattern.
+func (r *Route) Queries(pairs ...string) *Route <span class="cov8" title="1">{
+        length := len(pairs)
+        if length%2 != 0 </span><span class="cov0" title="0">{
+                r.err = fmt.Errorf(
+                        "mux: number of parameters must be multiple of 2, got %v", pairs)
+                return nil
+        }</span>
+        <span class="cov8" title="1">for i := 0; i &lt; length; i += 2 </span><span class="cov8" title="1">{
+                if r.err = r.addRegexpMatcher(pairs[i]+"="+pairs[i+1], regexpTypeQuery); r.err != nil </span><span class="cov0" title="0">{
+                        return r
+                }</span>
+        }
+
+        <span class="cov8" title="1">return r</span>
+}
+
+// Schemes --------------------------------------------------------------------
+
+// schemeMatcher matches the request against URL schemes.
+type schemeMatcher []string
+
+func (m schemeMatcher) Match(r *http.Request, match *RouteMatch) bool <span class="cov8" title="1">{
+        scheme := r.URL.Scheme
+        // https://golang.org/pkg/net/http/#Request
+        // "For [most] server requests, fields other than Path and RawQuery will be
+        // empty."
+        // Since we're an http muxer, the scheme is either going to be http or https
+        // though, so we can just set it based on the tls termination state.
+        if scheme == "" </span><span class="cov8" title="1">{
+                if r.TLS == nil </span><span class="cov8" title="1">{
+                        scheme = "http"
+                }</span> else<span class="cov8" title="1"> {
+                        scheme = "https"
+                }</span>
+        }
+        <span class="cov8" title="1">return matchInArray(m, scheme)</span>
+}
+
+// Schemes adds a matcher for URL schemes.
+// It accepts a sequence of schemes to be matched, e.g.: "http", "https".
+// If the request's URL has a scheme set, it will be matched against.
+// Generally, the URL scheme will only be set if a previous handler set it,
+// such as the ProxyHeaders handler from gorilla/handlers.
+// If unset, the scheme will be determined based on the request's TLS
+// termination state.
+// The first argument to Schemes will be used when constructing a route URL.
+func (r *Route) Schemes(schemes ...string) *Route <span class="cov8" title="1">{
+        for k, v := range schemes </span><span class="cov8" title="1">{
+                schemes[k] = strings.ToLower(v)
+        }</span>
+        <span class="cov8" title="1">if len(schemes) &gt; 0 </span><span class="cov8" title="1">{
+                r.buildScheme = schemes[0]
+        }</span>
+        <span class="cov8" title="1">return r.addMatcher(schemeMatcher(schemes))</span>
+}
+
+// BuildVarsFunc --------------------------------------------------------------
+
+// BuildVarsFunc is the function signature used by custom build variable
+// functions (which can modify route variables before a route's URL is built).
+type BuildVarsFunc func(map[string]string) map[string]string
+
+// BuildVarsFunc adds a custom function to be used to modify build variables
+// before a route's URL is built.
+func (r *Route) BuildVarsFunc(f BuildVarsFunc) *Route <span class="cov8" title="1">{
+        if r.buildVarsFunc != nil </span><span class="cov8" title="1">{
+                // compose the old and new functions
+                old := r.buildVarsFunc
+                r.buildVarsFunc = func(m map[string]string) map[string]string </span><span class="cov8" title="1">{
+                        return f(old(m))
+                }</span>
+        } else<span class="cov8" title="1"> {
+                r.buildVarsFunc = f
+        }</span>
+        <span class="cov8" title="1">return r</span>
+}
+
+// Subrouter ------------------------------------------------------------------
+
+// Subrouter creates a subrouter for the route.
+//
+// It will test the inner routes only if the parent route matched. For example:
+//
+//        r := mux.NewRouter().NewRoute()
+//        s := r.Host("www.example.com").Subrouter()
+//        s.HandleFunc("/products/", ProductsHandler)
+//        s.HandleFunc("/products/{key}", ProductHandler)
+//        s.HandleFunc("/articles/{category}/{id:[0-9]+}"), ArticleHandler)
+//
+// Here, the routes registered in the subrouter won't be tested if the host
+// doesn't match.
+func (r *Route) Subrouter() *Router <span class="cov8" title="1">{
+        // initialize a subrouter with a copy of the parent route's configuration
+        router := &amp;Router{routeConf: copyRouteConf(r.routeConf), namedRoutes: r.namedRoutes}
+        r.addMatcher(router)
+        return router
+}</span>
+
+// ----------------------------------------------------------------------------
+// URL building
+// ----------------------------------------------------------------------------
+
+// URL builds a URL for the route.
+//
+// It accepts a sequence of key/value pairs for the route variables. For
+// example, given this route:
+//
+//        r := mux.NewRouter()
+//        r.HandleFunc("/articles/{category}/{id:[0-9]+}", ArticleHandler).
+//          Name("article")
+//
+// ...a URL for it can be built using:
+//
+//        url, err := r.Get("article").URL("category", "technology", "id", "42")
+//
+// ...which will return an url.URL with the following path:
+//
+//        "/articles/technology/42"
+//
+// This also works for host variables:
+//
+//        r := mux.NewRouter()
+//        r.HandleFunc("/articles/{category}/{id:[0-9]+}", ArticleHandler).
+//          Host("{subdomain}.domain.com").
+//          Name("article")
+//
+//        // url.String() will be "http://news.domain.com/articles/technology/42"
+//        url, err := r.Get("article").URL("subdomain", "news",
+//                                         "category", "technology",
+//                                         "id", "42")
+//
+// The scheme of the resulting url will be the first argument that was passed to Schemes:
+//
+//        // url.String() will be "https://example.com"
+//        r := mux.NewRouter().NewRoute()
+//        url, err := r.Host("example.com")
+//                     .Schemes("https", "http").URL()
+//
+// All variables defined in the route are required, and their values must
+// conform to the corresponding patterns.
+func (r *Route) URL(pairs ...string) (*url.URL, error) <span class="cov8" title="1">{
+        if r.err != nil </span><span class="cov0" title="0">{
+                return nil, r.err
+        }</span>
+        <span class="cov8" title="1">values, err := r.prepareVars(pairs...)
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+        <span class="cov8" title="1">var scheme, host, path string
+        queries := make([]string, 0, len(r.regexp.queries))
+        if r.regexp.host != nil </span><span class="cov8" title="1">{
+                if host, err = r.regexp.host.url(values); err != nil </span><span class="cov0" title="0">{
+                        return nil, err
+                }</span>
+                <span class="cov8" title="1">scheme = "http"
+                if r.buildScheme != "" </span><span class="cov8" title="1">{
+                        scheme = r.buildScheme
+                }</span>
+        }
+        <span class="cov8" title="1">if r.regexp.path != nil </span><span class="cov8" title="1">{
+                if path, err = r.regexp.path.url(values); err != nil </span><span class="cov0" title="0">{
+                        return nil, err
+                }</span>
+        }
+        <span class="cov8" title="1">for _, q := range r.regexp.queries </span><span class="cov8" title="1">{
+                var query string
+                if query, err = q.url(values); err != nil </span><span class="cov0" title="0">{
+                        return nil, err
+                }</span>
+                <span class="cov8" title="1">queries = append(queries, query)</span>
+        }
+        <span class="cov8" title="1">return &amp;url.URL{
+                Scheme:   scheme,
+                Host:     host,
+                Path:     path,
+                RawQuery: strings.Join(queries, "&amp;"),
+        }, nil</span>
+}
+
+// URLHost builds the host part of the URL for a route. See Route.URL().
+//
+// The route must have a host defined.
+func (r *Route) URLHost(pairs ...string) (*url.URL, error) <span class="cov8" title="1">{
+        if r.err != nil </span><span class="cov0" title="0">{
+                return nil, r.err
+        }</span>
+        <span class="cov8" title="1">if r.regexp.host == nil </span><span class="cov0" title="0">{
+                return nil, errors.New("mux: route doesn't have a host")
+        }</span>
+        <span class="cov8" title="1">values, err := r.prepareVars(pairs...)
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+        <span class="cov8" title="1">host, err := r.regexp.host.url(values)
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+        <span class="cov8" title="1">u := &amp;url.URL{
+                Scheme: "http",
+                Host:   host,
+        }
+        if r.buildScheme != "" </span><span class="cov8" title="1">{
+                u.Scheme = r.buildScheme
+        }</span>
+        <span class="cov8" title="1">return u, nil</span>
+}
+
+// URLPath builds the path part of the URL for a route. See Route.URL().
+//
+// The route must have a path defined.
+func (r *Route) URLPath(pairs ...string) (*url.URL, error) <span class="cov8" title="1">{
+        if r.err != nil </span><span class="cov0" title="0">{
+                return nil, r.err
+        }</span>
+        <span class="cov8" title="1">if r.regexp.path == nil </span><span class="cov0" title="0">{
+                return nil, errors.New("mux: route doesn't have a path")
+        }</span>
+        <span class="cov8" title="1">values, err := r.prepareVars(pairs...)
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+        <span class="cov8" title="1">path, err := r.regexp.path.url(values)
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+        <span class="cov8" title="1">return &amp;url.URL{
+                Path: path,
+        }, nil</span>
+}
+
+// GetPathTemplate returns the template used to build the
+// route match.
+// This is useful for building simple REST API documentation and for instrumentation
+// against third-party services.
+// An error will be returned if the route does not define a path.
+func (r *Route) GetPathTemplate() (string, error) <span class="cov8" title="1">{
+        if r.err != nil </span><span class="cov0" title="0">{
+                return "", r.err
+        }</span>
+        <span class="cov8" title="1">if r.regexp.path == nil </span><span class="cov8" title="1">{
+                return "", errors.New("mux: route doesn't have a path")
+        }</span>
+        <span class="cov8" title="1">return r.regexp.path.template, nil</span>
+}
+
+// GetPathRegexp returns the expanded regular expression used to match route path.
+// This is useful for building simple REST API documentation and for instrumentation
+// against third-party services.
+// An error will be returned if the route does not define a path.
+func (r *Route) GetPathRegexp() (string, error) <span class="cov8" title="1">{
+        if r.err != nil </span><span class="cov0" title="0">{
+                return "", r.err
+        }</span>
+        <span class="cov8" title="1">if r.regexp.path == nil </span><span class="cov0" title="0">{
+                return "", errors.New("mux: route does not have a path")
+        }</span>
+        <span class="cov8" title="1">return r.regexp.path.regexp.String(), nil</span>
+}
+
+// GetQueriesRegexp returns the expanded regular expressions used to match the
+// route queries.
+// This is useful for building simple REST API documentation and for instrumentation
+// against third-party services.
+// An error will be returned if the route does not have queries.
+func (r *Route) GetQueriesRegexp() ([]string, error) <span class="cov8" title="1">{
+        if r.err != nil </span><span class="cov0" title="0">{
+                return nil, r.err
+        }</span>
+        <span class="cov8" title="1">if r.regexp.queries == nil </span><span class="cov0" title="0">{
+                return nil, errors.New("mux: route doesn't have queries")
+        }</span>
+        <span class="cov8" title="1">queries := make([]string, 0, len(r.regexp.queries))
+        for _, query := range r.regexp.queries </span><span class="cov8" title="1">{
+                queries = append(queries, query.regexp.String())
+        }</span>
+        <span class="cov8" title="1">return queries, nil</span>
+}
+
+// GetQueriesTemplates returns the templates used to build the
+// query matching.
+// This is useful for building simple REST API documentation and for instrumentation
+// against third-party services.
+// An error will be returned if the route does not define queries.
+func (r *Route) GetQueriesTemplates() ([]string, error) <span class="cov8" title="1">{
+        if r.err != nil </span><span class="cov0" title="0">{
+                return nil, r.err
+        }</span>
+        <span class="cov8" title="1">if r.regexp.queries == nil </span><span class="cov0" title="0">{
+                return nil, errors.New("mux: route doesn't have queries")
+        }</span>
+        <span class="cov8" title="1">queries := make([]string, 0, len(r.regexp.queries))
+        for _, query := range r.regexp.queries </span><span class="cov8" title="1">{
+                queries = append(queries, query.template)
+        }</span>
+        <span class="cov8" title="1">return queries, nil</span>
+}
+
+// GetMethods returns the methods the route matches against
+// This is useful for building simple REST API documentation and for instrumentation
+// against third-party services.
+// An error will be returned if route does not have methods.
+func (r *Route) GetMethods() ([]string, error) <span class="cov8" title="1">{
+        if r.err != nil </span><span class="cov0" title="0">{
+                return nil, r.err
+        }</span>
+        <span class="cov8" title="1">for _, m := range r.matchers </span><span class="cov8" title="1">{
+                if methods, ok := m.(methodMatcher); ok </span><span class="cov8" title="1">{
+                        return []string(methods), nil
+                }</span>
+        }
+        <span class="cov8" title="1">return nil, errors.New("mux: route doesn't have methods")</span>
+}
+
+// GetHostTemplate returns the template used to build the
+// route match.
+// This is useful for building simple REST API documentation and for instrumentation
+// against third-party services.
+// An error will be returned if the route does not define a host.
+func (r *Route) GetHostTemplate() (string, error) <span class="cov8" title="1">{
+        if r.err != nil </span><span class="cov0" title="0">{
+                return "", r.err
+        }</span>
+        <span class="cov8" title="1">if r.regexp.host == nil </span><span class="cov8" title="1">{
+                return "", errors.New("mux: route doesn't have a host")
+        }</span>
+        <span class="cov8" title="1">return r.regexp.host.template, nil</span>
+}
+
+// GetVarNames returns the names of all variables added by regexp matchers
+// These can be used to know which route variables should be passed into r.URL()
+func (r *Route) GetVarNames() ([]string, error) <span class="cov8" title="1">{
+        if r.err != nil </span><span class="cov0" title="0">{
+                return nil, r.err
+        }</span>
+        <span class="cov8" title="1">var varNames []string
+        if r.regexp.host != nil </span><span class="cov8" title="1">{
+                varNames = append(varNames, r.regexp.host.varsN...)
+        }</span>
+        <span class="cov8" title="1">if r.regexp.path != nil </span><span class="cov8" title="1">{
+                varNames = append(varNames, r.regexp.path.varsN...)
+        }</span>
+        <span class="cov8" title="1">for _, regx := range r.regexp.queries </span><span class="cov8" title="1">{
+                varNames = append(varNames, regx.varsN...)
+        }</span>
+        <span class="cov8" title="1">return varNames, nil</span>
+}
+
+// prepareVars converts the route variable pairs into a map. If the route has a
+// BuildVarsFunc, it is invoked.
+func (r *Route) prepareVars(pairs ...string) (map[string]string, error) <span class="cov8" title="1">{
+        m, err := mapFromPairsToString(pairs...)
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+        <span class="cov8" title="1">return r.buildVars(m), nil</span>
+}
+
+func (r *Route) buildVars(m map[string]string) map[string]string <span class="cov8" title="1">{
+        if r.buildVarsFunc != nil </span><span class="cov8" title="1">{
+                m = r.buildVarsFunc(m)
+        }</span>
+        <span class="cov8" title="1">return m</span>
+}
+</pre>
+		
+		<pre class="file" id="file4" style="display: none">// Copyright 2012 The Gorilla Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+package mux
+
+import "net/http"
+
+// SetURLVars sets the URL variables for the given request, to be accessed via
+// mux.Vars for testing route behaviour. Arguments are not modified, a shallow
+// copy is returned.
+//
+// This API should only be used for testing purposes; it provides a way to
+// inject variables into the request context. Alternatively, URL variables
+// can be set by making a route that captures the required variables,
+// starting a server and sending the request to that server.
+func SetURLVars(r *http.Request, val map[string]string) *http.Request <span class="cov8" title="1">{
+        return requestWithVars(r, val)
+}</span>
+</pre>
+		
+		</div>
+	</body>
+	<script>
+	(function() {
+		var files = document.getElementById('files');
+		var visible;
+		files.addEventListener('change', onChange, false);
+		function select(part) {
+			if (visible)
+				visible.style.display = 'none';
+			visible = document.getElementById(part);
+			if (!visible)
+				return;
+			files.value = part;
+			visible.style.display = 'block';
+			location.hash = part;
+		}
+		function onChange() {
+			select(files.value);
+			window.scrollTo(0, 0);
+		}
+		if (location.hash != "") {
+			select(location.hash.substr(1));
+		}
+		if (!visible) {
+			select("file0");
+		}
+	})();
+	</script>
+</html>
